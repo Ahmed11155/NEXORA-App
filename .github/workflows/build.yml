@@ -21,8 +21,13 @@ jobs:
         run: |
           sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
-      - run: flutter build apk --release
+      - name: Build APK
+        shell: bash
+        run: flutter build apk --release 2>&1 | tee build.log
+      - name: Show error summary
+        if: failure()
+        run: grep -n -B2 -A12 -iE "what went wrong|error:|FAILURE" build.log | head -120
       - uses: actions/upload-artifact@v4
         with:
           name: nexora-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app
