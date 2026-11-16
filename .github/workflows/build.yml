@@ -16,18 +16,22 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
       - run: flutter create . --platforms=android --project-name nexora --org com.nexora
       - name: Add INTERNET permission
         run: |
           sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
       - name: Build APK
-        shell: bash
         run: flutter build apk --release 2>&1 | tee build.log
       - name: Show error summary
         if: failure()
-        run: grep -n -B2 -A12 -iE "what went wrong|error:|FAILURE" build.log | head -120
+        run: |
+          MSG=$(grep -iE -B1 -A8 "what went wrong|error:|failed to|exception" build.log | head -60 | tr '\n' '|' | sed 's/%/%25/g' || true)
+          TAIL=$(tail -n 25 build.log | tr '\n' '|' | sed 's/%/%25/g' || true)
+          echo "::error title=Build failure details::${MSG:-no match} ##### ${TAIL}"
       - uses: actions/upload-artifact@v4
         with:
           name: nexora-apk
-          path: build/app
+          path: build/app/outputs/flutter-apk/app-release.apk
